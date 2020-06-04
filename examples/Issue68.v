@@ -1,4 +1,6 @@
-Require Import SMTCoq.SMTCoq.
+Add Rec LoadPath "../src" as SMTCoqApi.
+
+Require Import SMTCoqApi.
 Require Import ZArith.
 
 
@@ -32,7 +34,7 @@ Definition exp1_smtcoq := (0, t_form, t_atom).
 
 
 (* TODO: implement this vernacular command *)
-(* Generate_SMT exp1_smtcoq "/tmp/issue68.smt2". *)
+Generate_SMT exp1_smtcoq "/tmp/issue68.smt2".
 
 
 

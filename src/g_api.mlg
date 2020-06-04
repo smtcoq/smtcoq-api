@@ -1,0 +1,28 @@
+(**************************************************************************)
+(*                                                                        *)
+(*     SMTCoq-Api                                                         *)
+(*     Copyright (C) 2020                                                 *)
+(*                                                                        *)
+(*     Author: Chantal Keller - LRI, Université Paris-Saclay              *)
+(*                                                                        *)
+(*   This file is distributed under the terms of the CeCILL-C licence     *)
+(*                                                                        *)
+(**************************************************************************)
+
+
+DECLARE PLUGIN "smtcoq_api_plugin"
+
+{
+
+open Stdarg
+(* open Ltac_plugin *)
+
+}
+
+VERNAC COMMAND EXTEND Vernac_smt CLASSIFIED AS QUERY
+| [ "Generate_SMT"
+    constr(formula) string(output) ] ->
+  {
+    Api.generate_smt formula output
+  }
+END
