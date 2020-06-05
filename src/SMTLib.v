@@ -36,6 +36,7 @@ Section SMTLib.
   Inductive term : Set :=
   | Term_Fun : fun_sym -> list term -> term
   | Term_Int : Z -> term
+  | Term_Geq : term -> term -> term
   | Term_Eq : term -> term -> term
   | Term_And : term -> term -> term
   .

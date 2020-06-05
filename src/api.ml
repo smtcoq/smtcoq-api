@@ -24,6 +24,7 @@ type fun_sym = Constr.t * ((sort list) * sort)
 type term =
   | Term_Fun of fun_sym * (term list)
   | Term_Int of Constr.t        (* of type Z *)
+  | Term_Geq of term * term
   | Term_Eq of term * term
   | Term_And of term * term
 
@@ -35,6 +36,7 @@ let cSort_Int = S.CoqTerms.gen_constant smtcoq_api_modules "Sort_Int"
 let cSort_Uninterpreted = S.CoqTerms.gen_constant smtcoq_api_modules "Sort_Uninterpreted"
 let cTerm_Fun = S.CoqTerms.gen_constant smtcoq_api_modules "Term_Fun"
 let cTerm_Int = S.CoqTerms.gen_constant smtcoq_api_modules "Term_Int"
+let cTerm_Geq = S.CoqTerms.gen_constant smtcoq_api_modules "Term_Geq"
 let cTerm_Eq = S.CoqTerms.gen_constant smtcoq_api_modules "Term_Eq"
 let cTerm_And = S.CoqTerms.gen_constant smtcoq_api_modules "Term_And"
 
@@ -87,6 +89,10 @@ let rec reify (c:Constr.t) =
   ) else if c = Lazy.force cTerm_Int then (
     match args with
       | [z] -> Term_Int z
+      | _ -> assert false
+  ) else if c = Lazy.force cTerm_Geq then (
+    match args with
+      | [t1; t2] -> Term_Geq (reify t1, reify t2)
       | _ -> assert false
   ) else if c = Lazy.force cTerm_Eq then (
     match args with
@@ -168,6 +174,10 @@ let rec compile rt ro rf ra = function
      in
      Atom (S.SmtAtom.Atom.get ra (S.SmtAtom.Aapp (op, hargs)))
   | Term_Int z -> Atom (compile_Z ra z)
+  | Term_Geq (t1, t2) ->
+     let t1 = get_atom (compile rt ro rf ra t1) in
+     let t2 = get_atom (compile rt ro rf ra t2) in
+     Atom (S.SmtAtom.Atom.get ra (S.SmtAtom.Abop (S.SmtAtom.BO_Zge, t1, t2)))
   | Term_Eq (t1, t2) ->
      let t1 = get_atom (compile rt ro rf ra t1) in
      let t2 = get_atom (compile rt ro rf ra t2) in
