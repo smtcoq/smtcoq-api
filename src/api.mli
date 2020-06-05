@@ -10,6 +10,4 @@
 (**************************************************************************)
 
 
-Require Export SMTCoq.SMTCoq SMTLib.
-
-Declare ML Module "smtcoq_api_plugin".
+val generate_smt : Environ.env -> Evd.evar_map -> EConstr.constr -> string -> unit

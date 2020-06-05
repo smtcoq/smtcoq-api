@@ -23,6 +23,9 @@ VERNAC COMMAND EXTEND Vernac_smt CLASSIFIED AS QUERY
 | [ "Generate_SMT"
     constr(formula) string(output) ] ->
   {
-    Api.generate_smt formula output
+    let env = Global.env () in
+    let sigma = Evd.from_env env in
+    let (sigma, formula) = Constrintern.interp_constr_evars env sigma formula in
+    Api.generate_smt env sigma formula output
   }
 END

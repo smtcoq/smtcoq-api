@@ -1,9 +1,13 @@
-Add Rec LoadPath "../src" as SMTCoqApi.
-
-Require Import SMTCoqApi.
 Require Import ZArith.
 
 
+(* Import the SMTCoq-API Library *)
+Add Rec LoadPath "../src" as SMTCoqApi.
+Require Import SMTCoqApi.
+
+
+(* Take your representation of expressions. Note that, for integers,
+   only Z is currently supported. *)
 Definition var := nat.
 Inductive Exp : Type -> Type :=
   Exp_Var     : var -> Exp Z
@@ -12,38 +16,34 @@ Inductive Exp : Type -> Type :=
 | Exp_Andb    : Exp bool -> Exp bool -> Exp bool.
 
 
+(* You only have to write a translation function from your expressions
+   into a high-level representation of FOL. This representation is
+   defined in ../src/SMTLib.v. *)
+Fixpoint Exp2SMTLIB {A:Type} (e:Exp A) : term :=
+  match e with
+  | Exp_Var v => Term_Fun (v, (nil, Sort_Int)) nil
+  | Exp_Z z => Term_Int z
+  | Exp_EqbZ e1 e2 => Term_Eq (Exp2SMTLIB e1) (Exp2SMTLIB e2)
+  | Exp_Andb e1 e2 => Term_And (Exp2SMTLIB e1) (Exp2SMTLIB e2)
+  end.
 
 
-Definition exp1 := (Exp_EqbZ (Exp_Var 0) (Exp_Z 0)).
+(* Now, take your expression *)
+Definition exp1 := Exp_EqbZ (Exp_Var 0) (Exp_Z 233).
+
+(* You translate it and normalize the result *)
+Definition smt1 := Eval compute in (Exp2SMTLIB exp1).
+Print smt1.
 
 
-(* TODO: provide a Coq API to build this *)
-Definition t_atom :=
-  let t0 := PArray.make 3 (Acop CO_xH) in
-  let t1 := PArray.set t0 0 (Aapp 0 nil) in
-  let t2 := PArray.set t1 1 (Acop CO_Z0) in
-  let t3 := PArray.set t2 2 (Abop (BO_eq Typ.TZ) 0 1) in
-  t3.
-
-Definition t_form :=
-  let t0 := PArray.make 1 Ftrue in
-  let t1 := PArray.set t0 0 (Fatom 2) in
-  t1.
-
-Definition exp1_smtcoq := (0, t_form, t_atom).
+(* This command outputs the satisfiability of the expression in the
+   given SMT-LIB2 file *)
+Generate_SMT smt1 "/tmp/ex1.smt2".
 
 
-(* TODO: implement this vernacular command *)
-Generate_SMT exp1_smtcoq "/tmp/issue68.smt2".
+(* We can proceed similarly for the second example *)
+Definition exp2 := Exp_Andb (Exp_EqbZ (Exp_Var 0) (Exp_Z 233))
+                            (Exp_EqbZ (Exp_Var 0) (Exp_Z 2333)).
 
-
-
-
-(*
-Definition satisfiable : Exp bool -> bool. Admitted.
-Goal satisfiable (Exp_EqbNat (Exp_Var 0) (Exp_Nat 233)) = true.
-Admitted.
-Goal satisfiable (Exp_Andb (Exp_EqbNat (Exp_Var 0) (Exp_Nat 233))
-                           (Exp_EqbNat (Exp_Var 0) (Exp_Nat 2333))) = false.
-Admitted.
-*)
+Definition smt2 := Eval compute in (Exp2SMTLIB exp2).
+Generate_SMT smt2 "/tmp/ex2.smt2".

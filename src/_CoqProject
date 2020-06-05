@@ -3,7 +3,9 @@
 -I .
 
 api.ml
+api.mli
 g_api.mlg
 smtcoq_api_plugin.mlpack
 
+SMTLib.v
 SMTCoqApi.v
