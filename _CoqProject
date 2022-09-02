@@ -1,0 +1,10 @@
+-R theories SMTCoqApi
+-I src
+
+theories/SMTCoqApi.v
+theories/SMTLib.v
+
+src/api.ml
+src/api.mli
+src/g_api.mlg
+src/smtcoq_api_plugin.mlpack

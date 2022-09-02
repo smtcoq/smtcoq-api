@@ -1,5 +1,5 @@
-.*.aux
-.*.d
+*.aux
+*.d
 *.a
 *.cma
 *.cmi
@@ -31,3 +31,5 @@ lia.cache
 nia.cache
 nlia.cache
 nra.cache
+Makefile.coq
+Makefile.coq.conf

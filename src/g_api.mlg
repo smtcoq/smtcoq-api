@@ -1,9 +1,9 @@
 (**************************************************************************)
 (*                                                                        *)
 (*     SMTCoq-Api                                                         *)
-(*     Copyright (C) 2020                                                 *)
+(*     Copyright (C) 2020 - 2022                                          *)
 (*                                                                        *)
-(*     Author: Chantal Keller - LRI, Université Paris-Saclay              *)
+(*     Author: Chantal Keller - LMF, Université Paris-Saclay              *)
 (*                                                                        *)
 (*   This file is distributed under the terms of the CeCILL-C licence     *)
 (*                                                                        *)
@@ -19,7 +19,7 @@ open Stdarg
 
 }
 
-VERNAC COMMAND EXTEND Vernac_smt CLASSIFIED AS QUERY
+VERNAC COMMAND EXTEND Vernac_smt CLASSIFIED AS SIDEFF
 | [ "Generate_SMT"
     constr(formula) string(output) ] ->
   {
