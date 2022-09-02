@@ -1,7 +1,11 @@
 # Installation procedure for SMTCoq-API
-First, you need to install SMTCoq for Coq-8.11, par following [these
-instructions](https://github.com/smtcoq/smtcoq/blob/coq-8.11/INSTALL.md#installation-from-the-sources-using-opam-).
-Take care of using [the branch coq-8.11 of SMTCoq](https://github.com/smtcoq/smtcoq/tree/coq-8.11).
+First, you need to install the development version of SMTCoq for
+Coq-8.13. In a new switch:
+```
+opam repo add coq-released https://coq.inria.fr/opam/released
+opam repo add coq-extra-dev https://coq.inria.fr/opam/extra-dev
+opam install coq-smtcoq.dev+8.13
+```
 
 Then, simply go to the `src` directory and run:
 ```
