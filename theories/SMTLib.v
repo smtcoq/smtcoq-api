@@ -42,3 +42,14 @@ Section SMTLib.
   .
 
 End SMTLib.
+
+
+(* Register constants for OCaml access *)
+Register Sort_Bool as SMTCoqAPI.SMTLib.Sort_Bool.
+Register Sort_Int as SMTCoqAPI.SMTLib.Sort_Int.
+Register Sort_Uninterpreted as SMTCoqAPI.SMTLib.Sort_Uninterpreted.
+Register Term_Fun as SMTCoqAPI.SMTLib.Term_Fun.
+Register Term_Int as SMTCoqAPI.SMTLib.Term_Int.
+Register Term_Geq as SMTCoqAPI.SMTLib.Term_Geq.
+Register Term_Eq as SMTCoqAPI.SMTLib.Term_Eq.
+Register Term_And as SMTCoqAPI.SMTLib.Term_And.

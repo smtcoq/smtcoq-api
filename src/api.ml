@@ -30,15 +30,18 @@ type term =
 
 
 (* Simple SMT-LIB syntax, in Coq *)
-let smtcoq_api_modules = [["SMTCoqApi";"SMTLib"]]
-let cSort_Bool = S.CoqTerms.gen_constant smtcoq_api_modules "Sort_Bool"
-let cSort_Int = S.CoqTerms.gen_constant smtcoq_api_modules "Sort_Int"
-let cSort_Uninterpreted = S.CoqTerms.gen_constant smtcoq_api_modules "Sort_Uninterpreted"
-let cTerm_Fun = S.CoqTerms.gen_constant smtcoq_api_modules "Term_Fun"
-let cTerm_Int = S.CoqTerms.gen_constant smtcoq_api_modules "Term_Int"
-let cTerm_Geq = S.CoqTerms.gen_constant smtcoq_api_modules "Term_Geq"
-let cTerm_Eq = S.CoqTerms.gen_constant smtcoq_api_modules "Term_Eq"
-let cTerm_And = S.CoqTerms.gen_constant smtcoq_api_modules "Term_And"
+let gc prefix constant =
+  lazy (UnivGen.constr_of_monomorphic_global (Coqlib.lib_ref (prefix ^ "." ^ constant)))
+let smtcoq_api_prefix = "SMTCoqAPI.SMTLib"
+let smtcoq_api_gc = gc smtcoq_api_prefix
+let cSort_Bool = smtcoq_api_gc "Sort_Bool"
+let cSort_Int = smtcoq_api_gc "Sort_Int"
+let cSort_Uninterpreted = smtcoq_api_gc "Sort_Uninterpreted"
+let cTerm_Fun = smtcoq_api_gc "Term_Fun"
+let cTerm_Int = smtcoq_api_gc "Term_Int"
+let cTerm_Geq = smtcoq_api_gc "Term_Geq"
+let cTerm_Eq = smtcoq_api_gc "Term_Eq"
+let cTerm_And = smtcoq_api_gc "Term_And"
 
 
 (* Reification *)
@@ -106,12 +109,12 @@ let rec reify (c:Constr.t) =
 
 
 (* Compilation to low-level SMTCoq syntax *)
-let dummy_typ_compdec = Constr.mkProp
+(* let dummy_typ_compdec = Constr.mkProp *)
 
 let compile_sort rt = function
   | Sort_Bool -> S.SmtBtype.Tbool
   | Sort_Int -> S.SmtBtype.TZ
-  | Sort_Uninterpreted c -> S.SmtBtype.declare rt c dummy_typ_compdec
+  | Sort_Uninterpreted c -> failwith "Not implemented yet" (* S.SmtBtype.declare rt c dummy_typ_compdec *)
 
 
 let rec compile_positive ra (c:Constr.t) =
