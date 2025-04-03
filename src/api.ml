@@ -17,9 +17,24 @@ module S = Smtcoq_plugin
 type sort =
   | Sort_Bool
   | Sort_Int
+  | Sort_BitVec of int
   | Sort_Uninterpreted of Constr.t
 
 type fun_sym = Constr.t * ((sort list) * sort)
+
+type bvUnaryOp =
+  | BVNot
+  | BVNeg
+
+type bvBinOp =
+  | BVAnd
+  | BVOr
+  | BVAdd
+  | BVMul
+  | BVUDiv
+  | BVURem
+  | BVShl
+  | BVShr
 
 type term =
   | Term_Fun of fun_sym * (term list)
@@ -27,7 +42,17 @@ type term =
   | Term_Geq of term * term
   | Term_Eq of term * term
   | Term_And of term * term
-
+  | Term_Or of term * term
+  | Term_Not of term
+  | Term_ITE of term * term * term
+  | Term_True
+  | Term_False
+  | Term_BVLit of bool list
+  | Term_BVConcat of term * term
+  | Term_BVExtract of int * int * term
+  | Term_BVUnaryOp of (bvUnaryOp * term)
+  | Term_BVBinOp of (bvBinOp * term * term)
+  | Term_BVUlt of (term * term)
 
 (* Simple SMT-LIB syntax, in Coq *)
 let gc prefix constant =
@@ -36,13 +61,36 @@ let smtcoq_api_prefix = "SMTCoqAPI.SMTLib"
 let smtcoq_api_gc = gc smtcoq_api_prefix
 let cSort_Bool = smtcoq_api_gc "Sort_Bool"
 let cSort_Int = smtcoq_api_gc "Sort_Int"
+let cSort_BitVec = smtcoq_api_gc "Sort_BitVec"
 let cSort_Uninterpreted = smtcoq_api_gc "Sort_Uninterpreted"
+
+let cBVNot = smtcoq_api_gc "BVNot"
+let cBVNeg = smtcoq_api_gc "BVNeg"
+let cBVAnd = smtcoq_api_gc "BVAnd"
+let cBVOr = smtcoq_api_gc "BVOr"
+let cBVAdd = smtcoq_api_gc "BVAdd"
+let cBVMul = smtcoq_api_gc "BVMul"
+let cBVUDiv = smtcoq_api_gc "BVUDiv"
+let cBVURem = smtcoq_api_gc "BVURem"
+let cBVShl = smtcoq_api_gc "BVShl"
+let cBVShr = smtcoq_api_gc "BVShr"
+
 let cTerm_Fun = smtcoq_api_gc "Term_Fun"
 let cTerm_Int = smtcoq_api_gc "Term_Int"
 let cTerm_Geq = smtcoq_api_gc "Term_Geq"
 let cTerm_Eq = smtcoq_api_gc "Term_Eq"
 let cTerm_And = smtcoq_api_gc "Term_And"
-
+let cTerm_Or = smtcoq_api_gc "Term_Or"
+let cTerm_Not = smtcoq_api_gc "Term_Not"
+let cTerm_ITE = smtcoq_api_gc "Term_ITE"
+let cTerm_True = smtcoq_api_gc "Term_True"
+let cTerm_False = smtcoq_api_gc "Term_False"
+let cTerm_BVLit = smtcoq_api_gc "Term_BVLit"
+let cTerm_BVConcat = smtcoq_api_gc "Term_BVConcat"
+let cTerm_BVExtract = smtcoq_api_gc "Term_BVExtract"
+let cTerm_BVUnaryOp = smtcoq_api_gc "Term_BVUnaryOp"
+let cTerm_BVBinOp = smtcoq_api_gc "Term_BVBinOp"
+let cTerm_BVUlt = smtcoq_api_gc "Term_BVUlt"
 
 (* Reification *)
 let rec reify_list l =
@@ -62,7 +110,11 @@ let reify_sort (c:Constr.t) =
     Sort_Bool
   else if c = Lazy.force cSort_Int then
     Sort_Int
-  else if c = Lazy.force cSort_Uninterpreted then (
+  else if c = Lazy.force cSort_BitVec then (
+    assert (Array.length args = 1);
+    let n = S.CoqTerms.mk_N args.(0) in
+    Sort_BitVec n
+  ) else if c = Lazy.force cSort_Uninterpreted then (
     assert (Array.length args = 1);
     let num = args.(0) in
     Sort_Uninterpreted num
@@ -80,6 +132,26 @@ let reify_sym (sym:Constr.t) : fun_sym =
   let codom = sign.(3) in
   let dom = reify_list dom in
   (sym, (List.map reify_sort dom, reify_sort codom))
+
+let reify_unop (c:Constr.t) =
+  let c, args = Constr.decompose_app c in
+  assert (Array.length args = 0);
+  if c = Lazy.force cBVNot then BVNot
+  else if c = Lazy.force cBVNeg then BVNeg
+  else assert false
+
+let reify_binop (c:Constr.t) =
+  let c, args = Constr.decompose_app c in
+  assert (Array.length args = 0);
+  if c = Lazy.force cBVAnd then BVAnd
+  else if c = Lazy.force cBVOr then BVOr
+  else if c = Lazy.force cBVAdd then BVAdd
+  else if c = Lazy.force cBVMul then BVMul
+  else if c = Lazy.force cBVUDiv then BVUDiv
+  else if c = Lazy.force cBVURem then BVURem
+  else if c = Lazy.force cBVShl then BVShl
+  else if c = Lazy.force cBVShr then BVShr
+  else assert false
 
 let rec reify (c:Constr.t) =
   let c, args = Constr.decompose_app c in
@@ -109,6 +181,58 @@ let rec reify (c:Constr.t) =
     let t1 = args.(0) in
     let t2 = args.(1) in
     Term_And (reify t1, reify t2)
+  ) else if c = Lazy.force cTerm_Or then (
+    assert (Array.length args = 2);
+    let t1 = args.(0) in
+    let t2 = args.(1) in
+    Term_Or (reify t1, reify t2)
+  ) else if c = Lazy.force cTerm_Not then (
+    assert (Array.length args = 1);
+    let t = args.(0) in
+    Term_Not (reify t)
+  ) else if c = Lazy.force cTerm_ITE then (
+    assert (Array.length args = 3);
+    let cond = args.(0) in
+    let ifT = args.(1) in
+    let ifF = args.(2) in
+    Term_ITE (reify cond, reify ifT, reify ifF)
+  ) else if c = Lazy.force cTerm_True then (
+    assert (Array.length args = 0);
+    Term_True
+  ) else if c = Lazy.force cTerm_False then (
+    assert (Array.length args = 0);
+    Term_False
+  ) else if c = Lazy.force cTerm_BVLit then (
+    let l = reify_list args.(0) in
+    let l' = List.map S.CoqTerms.mk_bool l in
+    Term_BVLit l'
+  ) else if c = Lazy.force cTerm_BVConcat then (
+    assert (Array.length args = 2);
+    let t1 = args.(0) in
+    let t2 = args.(1) in
+    Term_BVConcat (reify t1, reify t2)
+  ) else if c = Lazy.force cTerm_BVExtract then (
+    assert (Array.length args = 3);
+    let lo = S.CoqTerms.mk_N args.(0) in
+    let hi = S.CoqTerms.mk_N args.(1) in
+    let t = args.(2) in
+    Term_BVExtract (lo, hi, reify t)
+  ) else if c = Lazy.force cTerm_BVUnaryOp then (
+    assert (Array.length args = 2);
+    let op = args.(0) in
+    let t = args.(1) in
+    Term_BVUnaryOp (reify_unop op, reify t)
+  ) else if c = Lazy.force cTerm_BVBinOp then (
+    assert (Array.length args = 2);
+    let op = args.(0) in
+    let t1 = args.(1) in
+    let t2 = args.(2) in
+    Term_BVBinOp (reify_binop op, reify t1, reify t2)
+  ) else if c = Lazy.force cTerm_BVUlt then (
+    assert (Array.length args = 2);
+    let t1 = args.(0) in
+    let t2 = args.(1) in
+    Term_BVUlt (reify t1, reify t2)
   ) else assert false
 
 
@@ -118,6 +242,7 @@ let rec reify (c:Constr.t) =
 let compile_sort rt = function
   | Sort_Bool -> S.SmtBtype.Tbool
   | Sort_Int -> S.SmtBtype.TZ
+  | Sort_BitVec w -> S.SmtBtype.TBV w (* How do I convert a Constr.t to an int whtih S.SmtBtype.TBV expects? *)
   | Sort_Uninterpreted c -> failwith "Not implemented yet" (* S.SmtBtype.declare rt c dummy_typ_compdec *)
 
 
@@ -190,6 +315,18 @@ let rec compile rt ro rf ra = function
      let t1 = get_form rf (compile rt ro rf ra t1) in
      let t2 = get_form rf (compile rt ro rf ra t2) in
      Form (S.SmtAtom.Form.get rf (S.SmtForm.Fapp (S.SmtForm.Fand, [|t1; t2|])))
+  | Term_BVLit l ->
+     Atom (S.SmtAtom.Atom.get ra (S.SmtAtom.Acop (S.SmtAtom.CO_BV l)))
+  | Term_True -> assert false
+  | Term_False -> assert false
+  | Term_Or (_, _) -> assert false
+  | Term_Not _ -> assert false
+  | Term_ITE (_, _, _) -> assert false
+  | Term_BVConcat (_, _) -> assert false
+  | Term_BVExtract (_, _, _) -> assert false
+  | Term_BVUnaryOp _ -> assert false
+  | Term_BVBinOp _ -> assert false
+  | Term_BVUlt _ -> assert false
 
 let compile rt ro rf ra c = get_form rf (compile rt ro rf ra c)
 
